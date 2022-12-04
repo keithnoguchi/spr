@@ -2,4 +2,5 @@
 
 members = [
   "pr2/ch22/refwithflag",
+  "pr2/ch22/gapbuffer",
 ]

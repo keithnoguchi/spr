@@ -6,6 +6,7 @@ demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
 ## Examples
 
 - [RefWithFlag: Reference with Packed Bool Flag](pr2/ch22/refwithflag/src/lib.rs)
+- [GapBuffer: Buffer with Gap Management](pr2/ch22/gapbuffer/src/lib.rs)
 
 Happy Hacking!
 
