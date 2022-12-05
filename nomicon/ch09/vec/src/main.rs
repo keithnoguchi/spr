@@ -4,7 +4,13 @@
 use vec::Vec;
 
 fn main() {
-    let v = Vec::<u32>::new();
-
+    let mut v = Vec::new();
+    v.push("first");
+    v.push("second");
+    v.push("third");
     println!("{v:?}");
+    println!("{:?}", v.pop());
+    println!("{:?}", v.pop());
+    println!("{:?}", v.pop());
+    println!("{:?}", v.pop());
 }
