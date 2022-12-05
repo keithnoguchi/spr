@@ -5,6 +5,7 @@ demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
 
 ## Examples
 
+- [Vec: Implementing std::vec::Vec from Scratch](nomicon/ch09/vec/src/lib.rs)
 - [RefWithFlag: Reference with Packed Bool Flag](pr2/ch22/refwithflag/src/lib.rs)
 - [GapBuffer: Buffer with Gap Management](pr2/ch22/gapbuffer/src/lib.rs)
 
