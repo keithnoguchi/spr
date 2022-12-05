@@ -1,10 +1,11 @@
 //! [Vec]: Implementing std::vec::Vec from Scratch
 //!
 //! [vec]: https://doc.rust-lang.org/nomicon/vec/vec.html
-use std::alloc::{alloc, handle_alloc_error, realloc, Layout};
+use std::alloc::{alloc, dealloc, handle_alloc_error, realloc, Layout};
 use std::fmt::{self, Debug};
 use std::mem::size_of;
 use std::ptr::{read, write, NonNull};
+use tracing::{instrument, trace};
 
 pub struct Vec<T> {
     buf: NonNull<T>,
@@ -14,6 +15,20 @@ pub struct Vec<T> {
 
 unsafe impl<T: Send> Send for Vec<T> {}
 unsafe impl<T: Sync> Sync for Vec<T> {}
+
+impl<T> Drop for Vec<T> {
+    #[instrument(name = "Vec::drop")]
+    fn drop(&mut self) {
+        if self.cap != 0 {
+            while self.pop().is_some() {}
+            let layout = Layout::array::<T>(self.cap).unwrap();
+            unsafe {
+                dealloc(self.buf.as_ptr() as *mut u8, layout);
+            }
+            trace!("dropped");
+        }
+    }
+}
 
 impl<T> Debug for Vec<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -56,9 +71,7 @@ impl<T> Vec<T> {
             None
         } else {
             self.len -= 1;
-            unsafe {
-                Some(read(self.buf.as_ptr().add(self.len)))
-            }
+            unsafe { Some(read(self.buf.as_ptr().add(self.len))) }
         }
     }
 

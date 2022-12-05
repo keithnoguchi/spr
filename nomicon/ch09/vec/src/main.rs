@@ -4,6 +4,7 @@
 use vec::Vec;
 
 fn main() {
+    tracing_subscriber::fmt::init();
     let mut v = Vec::new();
     v.push("first");
     v.push("second");
