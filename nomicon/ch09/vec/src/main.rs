@@ -10,6 +10,8 @@ fn main() {
     v.push("second");
     v.push("third");
     println!("{v:?}");
+    println!("first()={:?}", v.first());
+    println!("last()={:?}", v.last());
     println!("{:?}", v.pop());
     println!("{:?}", v.pop());
     println!("{:?}", v.pop());

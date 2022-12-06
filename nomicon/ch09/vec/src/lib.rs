@@ -4,7 +4,9 @@
 use std::alloc::{alloc, dealloc, handle_alloc_error, realloc, Layout};
 use std::fmt::{self, Debug};
 use std::mem::size_of;
+use std::ops::Deref;
 use std::ptr::{read, write, NonNull};
+use std::slice;
 use tracing::{instrument, trace};
 
 pub struct Vec<T> {
@@ -15,6 +17,14 @@ pub struct Vec<T> {
 
 unsafe impl<T: Send> Send for Vec<T> {}
 unsafe impl<T: Sync> Sync for Vec<T> {}
+
+impl<T> Deref for Vec<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &[T] {
+        unsafe { slice::from_raw_parts(self.buf.as_ptr(), self.len) }
+    }
+}
 
 impl<T> Drop for Vec<T> {
     #[instrument(name = "Vec::drop")]
@@ -112,6 +122,16 @@ mod tests {
         let v = Vec::<u64>::new();
         assert_eq!(v.cap, 0);
         assert_eq!(v.len, 0);
+    }
+
+    #[test]
+    fn slice() {
+        let mut v = Vec::new();
+        v.push(1);
+        v.push(2);
+        assert_eq!(v.len(), 2);
+        assert_eq!(v.first(), Some(&1));
+        assert_eq!(v.last(), Some(&2));
     }
 
     #[test]
