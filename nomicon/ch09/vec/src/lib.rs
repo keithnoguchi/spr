@@ -4,7 +4,7 @@
 use std::alloc::{self, Layout};
 use std::fmt::{self, Debug};
 use std::mem;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::ptr::{self, NonNull};
 use std::slice;
 use tracing::{instrument, trace};
@@ -21,8 +21,14 @@ unsafe impl<T: Sync> Sync for Vec<T> {}
 impl<T> Deref for Vec<T> {
     type Target = [T];
 
-    fn deref(&self) -> &[T] {
+    fn deref(&self) -> &Self::Target {
         unsafe { slice::from_raw_parts(self.buf.as_ptr(), self.len) }
+    }
+}
+
+impl<T> DerefMut for Vec<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { slice::from_raw_parts_mut(self.buf.as_ptr(), self.len) }
     }
 }
 
@@ -118,10 +124,13 @@ mod tests {
     use super::Vec;
 
     #[test]
-    fn new() {
-        let v = Vec::<u64>::new();
-        assert_eq!(v.cap, 0);
-        assert_eq!(v.len, 0);
+    fn iter_mut() {
+        let mut v = Vec::new();
+        v.push(1);
+        v.push(2);
+        v.iter_mut().for_each(|v| *v *= 2);
+        assert_eq!(v.pop(), Some(4));
+        assert_eq!(v.pop(), Some(2));
     }
 
     #[test]
@@ -171,6 +180,13 @@ mod tests {
         assert_eq!(v.len, 0);
         v.grow();
         assert_eq!(v.cap, 4);
+        assert_eq!(v.len, 0);
+    }
+
+    #[test]
+    fn new() {
+        let v = Vec::<u64>::new();
+        assert_eq!(v.cap, 0);
         assert_eq!(v.len, 0);
     }
 }

@@ -50,7 +50,6 @@ impl<T> Default for List<T> {
     }
 }
 
-
 impl<T> List<T> {
     pub fn new() -> Self {
         Self::default()
