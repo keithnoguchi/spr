@@ -1,11 +1,11 @@
 //! [Vec]: Implementing std::vec::Vec from Scratch
 //!
 //! [vec]: https://doc.rust-lang.org/nomicon/vec/vec.html
-use std::alloc::{alloc, dealloc, handle_alloc_error, realloc, Layout};
+use std::alloc::{self, Layout};
 use std::fmt::{self, Debug};
-use std::mem::size_of;
+use std::mem;
 use std::ops::Deref;
-use std::ptr::{read, write, NonNull};
+use std::ptr::{self, NonNull};
 use std::slice;
 use tracing::{instrument, trace};
 
@@ -33,7 +33,7 @@ impl<T> Drop for Vec<T> {
             while self.pop().is_some() {}
             let layout = Layout::array::<T>(self.cap).unwrap();
             unsafe {
-                dealloc(self.buf.as_ptr() as *mut u8, layout);
+                alloc::dealloc(self.buf.as_ptr() as *mut u8, layout);
             }
             trace!("dropped");
         }
@@ -52,7 +52,7 @@ impl<T> Debug for Vec<T> {
 
 impl<T> Default for Vec<T> {
     fn default() -> Self {
-        assert!(size_of::<T>() != 0, "We're not ready to handle ZSTs");
+        assert!(mem::size_of::<T>() != 0, "We're not ready to handle ZSTs");
         Self {
             buf: NonNull::dangling(),
             len: 0,
@@ -71,7 +71,7 @@ impl<T> Vec<T> {
             self.grow()
         }
         unsafe {
-            write(self.buf.as_ptr().add(self.len), v);
+            ptr::write(self.buf.as_ptr().add(self.len), v);
         }
         self.len += 1;
     }
@@ -81,7 +81,7 @@ impl<T> Vec<T> {
             None
         } else {
             self.len -= 1;
-            unsafe { Some(read(self.buf.as_ptr().add(self.len))) }
+            unsafe { Some(ptr::read(self.buf.as_ptr().add(self.len))) }
         }
     }
 
@@ -99,15 +99,15 @@ impl<T> Vec<T> {
         );
 
         let new_buf = if self.cap == 0 {
-            unsafe { alloc(new_layout) }
+            unsafe { alloc::alloc(new_layout) }
         } else {
             let old_buf = self.buf.as_ptr() as *mut u8;
             let old_layout = Layout::array::<T>(self.cap).unwrap();
-            unsafe { realloc(old_buf, old_layout, new_layout.size()) }
+            unsafe { alloc::realloc(old_buf, old_layout, new_layout.size()) }
         };
         self.buf = match NonNull::new(new_buf as *mut T) {
             Some(p) => p,
-            None => handle_alloc_error(new_layout),
+            None => alloc::handle_alloc_error(new_layout),
         };
         self.cap = new_cap;
     }
