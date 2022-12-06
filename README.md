@@ -6,6 +6,7 @@ demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
 ## Safe Examples
 
 - [List: Singly Linked List](nomicon/ch03/list/src/lib.rs)
+- [Tree: Unbalanced Binary Tree](nomicon/ch03/tree/src/lib.rs)
 
 ## Unsafe Examples
 
