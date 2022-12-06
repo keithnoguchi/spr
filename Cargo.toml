@@ -1,7 +1,8 @@
 [workspace]
 
 members = [
+  "nomicon/ch03/list",
+  "nomicon/ch09/vec",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
-  "nomicon/ch09/vec",
 ]

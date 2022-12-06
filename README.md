@@ -3,7 +3,11 @@
 Learning Safe Programming in Rust with the power of Unsafe Rust,
 demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
 
-## Examples
+## Safe Examples
+
+- [List: Singly Linked List](nomicon/ch03/list/src/lib.rs)
+
+## Unsafe Examples
 
 - [Vec: Implementing std::vec::Vec from Scratch](nomicon/ch09/vec/src/lib.rs)
 - [RefWithFlag: Reference with Packed Bool Flag](pr2/ch22/refwithflag/src/lib.rs)
