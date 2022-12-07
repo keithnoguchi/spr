@@ -46,7 +46,14 @@ impl<T> Iterator for IntoIter<T> {
 
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        todo!()
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                self.end = self.end.offset(-1);
+                Some(ptr::read(self.end))
+            }
+        }
     }
 }
 
@@ -215,7 +222,21 @@ mod tests {
     use super::Vec;
 
     #[test]
-    fn into_iter() {
+    fn into_iter_next_back() {
+        let test = "Load of the Ring";
+        let mut v = Vec::new();
+        for c in test.chars() {
+            v.push(c);
+        }
+        let mut iter = v.into_iter();
+        assert_eq!(iter.next_back(), Some('g'));
+        assert_eq!(iter.next_back(), Some('n'));
+        assert_eq!(iter.next_back(), Some('i'));
+        assert_eq!(iter.next_back(), Some('R'));
+    }
+
+    #[test]
+    fn into_iter_next() {
         let test = "Load of the Ring";
         let mut v = Vec::new();
         for c in test.chars() {
