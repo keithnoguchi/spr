@@ -1,0 +1,9 @@
+[package]
+name = "dot"
+version = "0.1.0"
+edition = "2021"
+authors = ["Keith Noguchi <hack@noguchi.us>"]
+
+[dependencies.num-traits]
+version = "0.2"
+default-features = false
