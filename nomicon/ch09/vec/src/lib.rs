@@ -15,22 +15,69 @@ pub struct Vec<T> {
     len: usize,
 }
 
+pub struct IntoIter<T> {
+    buf: NonNull<T>,
+    cap: usize,
+    len: usize,
+    start: *const T,
+    end: *const T,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                let result = ptr::read(self.start);
+                self.start = self.start.add(1);
+                Some(result)
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = (self.end as usize - self.start as usize)
+            / mem::size_of::<T>();
+        (len, Some(len))
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+
+impl<T> IntoIterator for Vec<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        let buf = self.buf;
+        let cap = self.cap;
+        let len = self.len;
+        mem::forget(self);
+        unsafe {
+            let start = buf.as_ptr();
+            let end = if cap == 0 {
+                start
+            } else {
+                start.add(len)
+            };
+            Self::IntoIter {
+                buf,
+                cap,
+                len,
+                start,
+                end,
+            }
+        }
+    }
+}
+
 unsafe impl<T: Send> Send for Vec<T> {}
 unsafe impl<T: Sync> Sync for Vec<T> {}
-
-impl<T> Deref for Vec<T> {
-    type Target = [T];
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { slice::from_raw_parts(self.buf.as_ptr(), self.len) }
-    }
-}
-
-impl<T> DerefMut for Vec<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { slice::from_raw_parts_mut(self.buf.as_ptr(), self.len) }
-    }
-}
 
 impl<T> Drop for Vec<T> {
     #[instrument(name = "Vec::drop")]
@@ -43,6 +90,20 @@ impl<T> Drop for Vec<T> {
             }
             trace!("dropped");
         }
+    }
+}
+
+impl<T> Deref for Vec<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { slice::from_raw_parts(self.buf.as_ptr(), self.len) }
+    }
+}
+
+impl<T> DerefMut for Vec<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { slice::from_raw_parts_mut(self.buf.as_ptr(), self.len) }
     }
 }
 
@@ -152,6 +213,20 @@ impl<T> Vec<T> {
 #[cfg(test)]
 mod tests {
     use super::Vec;
+
+    #[test]
+    fn into_iter() {
+        let test = "Load of the Ring";
+        let mut v = Vec::new();
+        for c in test.chars() {
+            v.push(c);
+        }
+        let mut iter = v.into_iter();
+        assert_eq!(iter.next(), Some('L'));
+        assert_eq!(iter.next(), Some('o'));
+        assert_eq!(iter.next(), Some('a'));
+        assert_eq!(iter.next(), Some('d'));
+    }
 
     #[test]
     fn remove() {

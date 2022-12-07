@@ -5,18 +5,11 @@ use vec::Vec;
 
 fn main() {
     tracing_subscriber::fmt::init();
-    let mut v = Vec::new();
-    v.push("first".to_string());
-    v.push("second".to_string());
-    v.push("third".to_string());
-    println!("{v:?}");
-    println!("first()={:?}", v.first());
-    println!("last()={:?}", v.last());
-    for v in v.iter_mut() {
-        *v = v.to_uppercase();
+    let mut vec = Vec::new();
+    vec.push("first".to_string());
+    vec.push("second".to_string());
+    vec.push("third".to_string());
+    for v in vec {
+        println!("{v}");
     }
-    println!("{:?}", v.pop());
-    println!("{:?}", v.pop());
-    println!("{:?}", v.pop());
-    println!("{:?}", v.pop());
 }
