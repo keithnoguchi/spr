@@ -251,15 +251,22 @@ impl<T> Iterator for BufIter<T> {
             None
         } else {
             unsafe {
-                let result = ptr::read(self.start);
-                self.start = self.start.add(1);
-                Some(result)
+                if mem::size_of::<T>() == 0 {
+                    self.start = (self.start as usize + 1) as *const _;
+                    Some(ptr::read(NonNull::<T>::dangling().as_ptr()))
+                } else {
+                    let old_ptr = self.start;
+                    self.start = self.start.add(1);
+                    Some(ptr::read(old_ptr))
+                }
             }
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.end as usize - self.start as usize) / mem::size_of::<T>();
+        let elem_size = mem::size_of::<T>();
+        let len =
+            (self.end as usize - self.start as usize) / if elem_size == 0 { 1 } else { elem_size };
         (len, Some(len))
     }
 }
@@ -270,8 +277,13 @@ impl<T> DoubleEndedIterator for BufIter<T> {
             None
         } else {
             unsafe {
-                self.end = self.end.offset(-1);
-                Some(ptr::read(self.end))
+                if mem::size_of::<T>() == 0 {
+                    self.end = (self.end as usize + 1) as *const _;
+                    Some(ptr::read(NonNull::<T>::dangling().as_ptr()))
+                } else {
+                    self.end = self.end.offset(-1);
+                    Some(ptr::read(self.end))
+                }
             }
         }
     }
@@ -283,6 +295,8 @@ impl<T> BufIter<T> {
             start: slice.as_ptr(),
             end: if slice.is_empty() {
                 slice.as_ptr()
+            } else if mem::size_of::<T>() == 0 {
+                ((slice.as_ptr() as usize) + slice.len()) as *const _
             } else {
                 slice.as_ptr().add(slice.len())
             },
@@ -296,7 +310,8 @@ unsafe impl<T> Sync for Buf<T> {}
 impl<T> Drop for Buf<T> {
     #[instrument(name = "Buf::drop")]
     fn drop(&mut self) {
-        if self.cap != 0 {
+        let elem_size = mem::size_of::<T>();
+        if self.cap != 0 && elem_size != 0 {
             let layout = Layout::array::<T>(self.cap).unwrap();
             unsafe {
                 alloc::dealloc(self.ptr.as_ptr() as *mut u8, layout);
@@ -308,10 +323,10 @@ impl<T> Drop for Buf<T> {
 
 impl<T> Default for Buf<T> {
     fn default() -> Self {
-        assert!(mem::size_of::<T>() != 0, "TODO: Implement ZST support");
+        let cap = if mem::size_of::<T>() == 0 { !0 } else { 0 };
         Self {
             ptr: NonNull::dangling(),
-            cap: 0,
+            cap,
         }
     }
 }
@@ -327,6 +342,7 @@ impl<T> Debug for Buf<T> {
 
 impl<T> Buf<T> {
     fn grow(&mut self) {
+        assert!(mem::size_of::<T>() != 0, "capacity overflow");
         let (new_cap, new_layout) = if self.cap == 0 {
             (1, Layout::array::<T>(1).unwrap())
         } else {
@@ -336,7 +352,7 @@ impl<T> Buf<T> {
         };
         assert!(
             new_layout.size() <= isize::MAX as usize,
-            "Allocation too large",
+            "allocation too large",
         );
         let new_buf = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
@@ -356,6 +372,27 @@ impl<T> Buf<T> {
 #[cfg(test)]
 mod tests {
     use super::{Buf, Vec};
+
+    #[test]
+    fn into_iter_zst() {
+        let mut v = Vec::<()>::new();
+        for _ in 0..1000 {
+            v.push(());
+        }
+        assert_eq!(v.len(), 1000);
+        for _ in v {}
+    }
+
+    #[test]
+    fn drain_zst() {
+        let mut v = Vec::<()>::new();
+        for _ in 0..1000 {
+            v.push(());
+        }
+        assert_eq!(v.len(), 1000);
+        for _ in v.drain() {}
+        assert_eq!(v.len(), 0);
+    }
 
     #[test]
     fn drain() {
