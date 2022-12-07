@@ -3,6 +3,7 @@
 //! [vec]: https://doc.rust-lang.org/nomicon/vec/vec.html
 use std::alloc::{self, Layout};
 use std::fmt::{self, Debug};
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr::{self, NonNull};
@@ -57,6 +58,7 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
 impl<T> IntoIterator for Vec<T> {
     type Item = T;
     type IntoIter = IntoIter<T>;
+
     fn into_iter(self) -> Self::IntoIter {
         unsafe {
             let iter = BufIter::new(&self);
@@ -64,6 +66,42 @@ impl<T> IntoIterator for Vec<T> {
             mem::forget(self);
             Self::IntoIter { _buf, iter }
         }
+    }
+}
+
+pub struct Drain<'a, T: 'a> {
+    iter: BufIter<T>,
+    vec: PhantomData<&'a mut Vec<T>>,
+}
+
+impl<'a, T> Drop for Drain<'a, T> {
+    #[instrument(name = "Drain::drop")]
+    fn drop(&mut self) {
+        for _ in self {}
+        trace!("dropped");
+    }
+}
+
+impl<'a, T> Debug for Drain<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Drain").field("iter", &self.iter).finish()
+    }
+}
+
+impl<'a, T> Iterator for Drain<'a, T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for Drain<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back()
     }
 }
 
@@ -113,6 +151,17 @@ impl<T> Debug for Vec<T> {
 impl<T> Vec<T> {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn drain(&mut self) -> Drain<T> {
+        unsafe {
+            let iter = BufIter::new(self);
+            self.len = 0;
+            Drain {
+                iter,
+                vec: PhantomData,
+            }
+        }
     }
 
     pub fn insert(&mut self, index: usize, v: T) {
@@ -307,6 +356,20 @@ impl<T> Buf<T> {
 #[cfg(test)]
 mod tests {
     use super::{Buf, Vec};
+
+    #[test]
+    fn drain() {
+        let test = "Load of the Ring";
+        let mut v = Vec::new();
+        for c in test.chars() {
+            v.push(c);
+        }
+        let mut drain = v.drain();
+        assert_eq!(drain.next(), Some('L'));
+        assert_eq!(drain.next(), Some('o'));
+        drop(drain);
+        assert_eq!(v.len(), 0);
+    }
 
     #[test]
     fn into_iter_next_back() {

@@ -9,7 +9,11 @@ fn main() {
     vec.push("first".to_string());
     vec.push("second".to_string());
     vec.push("third".to_string());
-    for v in vec {
+    for v in vec.iter() {
         println!("{v}");
     }
+    for v in vec.drain() {
+        println!("{v}");
+    }
+    println!("v.len()={}", vec.len());
 }
