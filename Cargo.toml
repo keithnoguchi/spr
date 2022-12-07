@@ -4,6 +4,7 @@ members = [
   "nomicon/ch03/list",
   "nomicon/ch03/tree",
   "nomicon/ch09/vec",
+  "pr2/ch11/fib",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
 ]
