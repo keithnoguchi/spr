@@ -18,9 +18,20 @@ pub struct Vec<T> {
 pub struct IntoIter<T> {
     buf: NonNull<T>,
     cap: usize,
-    len: usize,
     start: *const T,
     end: *const T,
+}
+
+impl<T> Drop for IntoIter<T> {
+    fn drop(&mut self) {
+        if self.cap != 0 {
+            for _ in &mut *self {}
+            let layout = Layout::array::<T>(self.cap).unwrap();
+            unsafe {
+                alloc::dealloc(self.buf.as_ptr() as *mut u8, layout);
+            }
+        }
+    }
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -38,8 +49,7 @@ impl<T> Iterator for IntoIter<T> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.end as usize - self.start as usize)
-            / mem::size_of::<T>();
+        let len = (self.end as usize - self.start as usize) / mem::size_of::<T>();
         (len, Some(len))
     }
 }
@@ -67,15 +77,10 @@ impl<T> IntoIterator for Vec<T> {
         mem::forget(self);
         unsafe {
             let start = buf.as_ptr();
-            let end = if cap == 0 {
-                start
-            } else {
-                start.add(len)
-            };
+            let end = if cap == 0 { start } else { start.add(len) };
             Self::IntoIter {
                 buf,
                 cap,
-                len,
                 start,
                 end,
             }
