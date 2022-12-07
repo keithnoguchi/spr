@@ -72,6 +72,36 @@ impl<T> Vec<T> {
         Self::default()
     }
 
+    pub fn insert(&mut self, index: usize, v: T) {
+        assert!(index <= self.len, "index out of bounds");
+        if self.cap == self.len {
+            self.grow()
+        }
+        unsafe {
+            ptr::copy(
+                self.buf.as_ptr().add(index),
+                self.buf.as_ptr().add(index + 1),
+                self.len - index,
+            );
+            ptr::write(self.buf.as_ptr().add(index), v);
+            self.len += 1;
+        }
+    }
+
+    pub fn remove(&mut self, index: usize) -> T {
+        assert!(index < self.len, "index out of bounds");
+        unsafe {
+            self.len -= 1;
+            let result = ptr::read(self.buf.as_ptr().add(index));
+            ptr::copy(
+                self.buf.as_ptr().add(index + 1),
+                self.buf.as_ptr().add(index),
+                self.len - index,
+            );
+            result
+        }
+    }
+
     pub fn push(&mut self, v: T) {
         if self.len == self.cap {
             self.grow()
@@ -122,6 +152,36 @@ impl<T> Vec<T> {
 #[cfg(test)]
 mod tests {
     use super::Vec;
+
+    #[test]
+    fn remove() {
+        let test = "Load of the Onion Ring";
+        let mut v = Vec::new();
+        for c in test.chars() {
+            v.push(c);
+        }
+        let mut got = String::new();
+        for _ in 0..5 {
+            let result = v.remove(12);
+            got.push(result);
+        }
+        assert_eq!(got.as_str(), "Onion");
+    }
+
+    #[test]
+    fn insert() {
+        let test = "Load of the Ring";
+        let mut v = Vec::new();
+        for c in test.chars() {
+            v.push(c);
+        }
+        assert_eq!(v.len(), test.len());
+        for (i, c) in "Onion".chars().enumerate() {
+            v.insert(12 + i, c);
+        }
+        assert_eq!(v.len(), test.len() + "Onion".len());
+        assert_eq!(v.last(), Some(&'g'));
+    }
 
     #[test]
     fn iter_mut() {
