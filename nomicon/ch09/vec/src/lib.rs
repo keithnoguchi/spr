@@ -10,27 +10,32 @@ use std::slice;
 use tracing::{instrument, trace};
 
 pub struct Vec<T> {
-    buf: NonNull<T>,
-    cap: usize,
+    buf: Buf<T>,
     len: usize,
 }
 
 pub struct IntoIter<T> {
-    buf: NonNull<T>,
-    cap: usize,
+    // just a placeholder for the drop.
+    _buf: Buf<T>,
     start: *const T,
     end: *const T,
 }
 
 impl<T> Drop for IntoIter<T> {
+    #[instrument(name = "IntoIter::drop")]
     fn drop(&mut self) {
-        if self.cap != 0 {
-            for _ in &mut *self {}
-            let layout = Layout::array::<T>(self.cap).unwrap();
-            unsafe {
-                alloc::dealloc(self.buf.as_ptr() as *mut u8, layout);
-            }
-        }
+        for _ in &mut *self {}
+        trace!("dropped")
+    }
+}
+
+impl<T> Debug for IntoIter<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IntoIter")
+            .field("start", &self.start)
+            .field("end", &self.end)
+            .field("buf", &self._buf)
+            .finish()
     }
 }
 
@@ -71,16 +76,14 @@ impl<T> IntoIterator for Vec<T> {
     type Item = T;
     type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
-        let buf = self.buf;
-        let cap = self.cap;
-        let len = self.len;
-        mem::forget(self);
         unsafe {
-            let start = buf.as_ptr();
-            let end = if cap == 0 { start } else { start.add(len) };
+            let buf = ptr::read(&self.buf);
+            let len = self.len;
+            mem::forget(self);
+            let start = buf.ptr.as_ptr();
+            let end = if buf.cap == 0 { start } else { start.add(len) };
             Self::IntoIter {
-                buf,
-                cap,
+                _buf: buf,
                 start,
                 end,
             }
@@ -94,14 +97,8 @@ unsafe impl<T: Sync> Sync for Vec<T> {}
 impl<T> Drop for Vec<T> {
     #[instrument(name = "Vec::drop")]
     fn drop(&mut self) {
-        if self.cap != 0 {
-            while self.pop().is_some() {}
-            let layout = Layout::array::<T>(self.cap).unwrap();
-            unsafe {
-                alloc::dealloc(self.buf.as_ptr() as *mut u8, layout);
-            }
-            trace!("dropped");
-        }
+        while self.pop().is_some() {}
+        trace!("dropped");
     }
 }
 
@@ -109,13 +106,22 @@ impl<T> Deref for Vec<T> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
-        unsafe { slice::from_raw_parts(self.buf.as_ptr(), self.len) }
+        unsafe { slice::from_raw_parts(self.ptr(), self.len) }
     }
 }
 
 impl<T> DerefMut for Vec<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { slice::from_raw_parts_mut(self.buf.as_ptr(), self.len) }
+        unsafe { slice::from_raw_parts_mut(self.ptr(), self.len) }
+    }
+}
+
+impl<T> Default for Vec<T> {
+    fn default() -> Self {
+        Self {
+            buf: Buf::default(),
+            len: 0,
+        }
     }
 }
 
@@ -124,19 +130,7 @@ impl<T> Debug for Vec<T> {
         f.debug_struct("Vec")
             .field("buf", &self.buf)
             .field("len", &self.len)
-            .field("cap", &self.cap)
             .finish()
-    }
-}
-
-impl<T> Default for Vec<T> {
-    fn default() -> Self {
-        assert!(mem::size_of::<T>() != 0, "We're not ready to handle ZSTs");
-        Self {
-            buf: NonNull::dangling(),
-            len: 0,
-            cap: 0,
-        }
     }
 }
 
@@ -147,16 +141,16 @@ impl<T> Vec<T> {
 
     pub fn insert(&mut self, index: usize, v: T) {
         assert!(index <= self.len, "index out of bounds");
-        if self.cap == self.len {
-            self.grow()
+        if self.len == self.cap() {
+            self.buf.grow()
         }
         unsafe {
             ptr::copy(
-                self.buf.as_ptr().add(index),
-                self.buf.as_ptr().add(index + 1),
+                self.ptr().add(index),
+                self.ptr().add(index + 1),
                 self.len - index,
             );
-            ptr::write(self.buf.as_ptr().add(index), v);
+            ptr::write(self.ptr().add(index), v);
             self.len += 1;
         }
     }
@@ -165,10 +159,10 @@ impl<T> Vec<T> {
         assert!(index < self.len, "index out of bounds");
         unsafe {
             self.len -= 1;
-            let result = ptr::read(self.buf.as_ptr().add(index));
+            let result = ptr::read(self.ptr().add(index));
             ptr::copy(
-                self.buf.as_ptr().add(index + 1),
-                self.buf.as_ptr().add(index),
+                self.ptr().add(index + 1),
+                self.ptr().add(index),
                 self.len - index,
             );
             result
@@ -176,11 +170,11 @@ impl<T> Vec<T> {
     }
 
     pub fn push(&mut self, v: T) {
-        if self.len == self.cap {
-            self.grow()
+        if self.len == self.cap() {
+            self.buf.grow()
         }
         unsafe {
-            ptr::write(self.buf.as_ptr().add(self.len), v);
+            ptr::write(self.ptr().add(self.len), v);
         }
         self.len += 1;
     }
@@ -190,10 +184,62 @@ impl<T> Vec<T> {
             None
         } else {
             self.len -= 1;
-            unsafe { Some(ptr::read(self.buf.as_ptr().add(self.len))) }
+            unsafe { Some(ptr::read(self.ptr().add(self.len))) }
         }
     }
 
+    #[inline]
+    fn ptr(&self) -> *mut T {
+        self.buf.ptr.as_ptr()
+    }
+
+    #[inline]
+    fn cap(&self) -> usize {
+        self.buf.cap
+    }
+}
+
+struct Buf<T> {
+    ptr: NonNull<T>,
+    cap: usize,
+}
+
+unsafe impl<T> Send for Buf<T> {}
+unsafe impl<T> Sync for Buf<T> {}
+
+impl<T> Drop for Buf<T> {
+    #[instrument(name = "Buf::drop")]
+    fn drop(&mut self) {
+        if self.cap != 0 {
+            let layout = Layout::array::<T>(self.cap).unwrap();
+            unsafe {
+                alloc::dealloc(self.ptr.as_ptr() as *mut u8, layout);
+            }
+            trace!("dropped");
+        }
+    }
+}
+
+impl<T> Default for Buf<T> {
+    fn default() -> Self {
+        assert!(mem::size_of::<T>() != 0, "TODO: Implement ZST support");
+        Self {
+            ptr: NonNull::dangling(),
+            cap: 0,
+        }
+    }
+}
+
+impl<T> Debug for Buf<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Buf")
+            .field("ptr", &self.ptr)
+            .field("cap", &self.cap)
+            .finish()
+    }
+}
+
+impl<T> Buf<T> {
     fn grow(&mut self) {
         let (new_cap, new_layout) = if self.cap == 0 {
             (1, Layout::array::<T>(1).unwrap())
@@ -206,15 +252,14 @@ impl<T> Vec<T> {
             new_layout.size() <= isize::MAX as usize,
             "Allocation too large",
         );
-
         let new_buf = if self.cap == 0 {
             unsafe { alloc::alloc(new_layout) }
         } else {
-            let old_buf = self.buf.as_ptr() as *mut u8;
+            let old_buf = self.ptr.as_ptr() as *mut u8;
             let old_layout = Layout::array::<T>(self.cap).unwrap();
             unsafe { alloc::realloc(old_buf, old_layout, new_layout.size()) }
         };
-        self.buf = match NonNull::new(new_buf as *mut T) {
+        self.ptr = match NonNull::new(new_buf as *mut T) {
             Some(p) => p,
             None => alloc::handle_alloc_error(new_layout),
         };
@@ -224,7 +269,7 @@ impl<T> Vec<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::Vec;
+    use super::{Buf, Vec};
 
     #[test]
     fn into_iter_next_back() {
@@ -310,10 +355,10 @@ mod tests {
         v.push(9);
         v.push(10);
         assert_eq!(v.len, 2);
-        assert_eq!(v.cap, 2);
+        assert_eq!(v.buf.cap, 2);
         v.push(1);
         assert_eq!(v.len, 3);
-        assert_eq!(v.cap, 4);
+        assert_eq!(v.buf.cap, 4);
     }
 
     #[test]
@@ -327,27 +372,23 @@ mod tests {
         assert_eq!(v.pop(), None);
         assert_eq!(v.pop(), None);
         assert_eq!(v.len, 0);
-        assert_eq!(v.cap, 2);
+        assert_eq!(v.buf.cap, 2);
     }
 
     #[test]
-    fn grow() {
-        let mut v = Vec::<u32>::new();
-        v.grow();
-        assert_eq!(v.cap, 1);
-        assert_eq!(v.len, 0);
-        v.grow();
-        assert_eq!(v.cap, 2);
-        assert_eq!(v.len, 0);
-        v.grow();
-        assert_eq!(v.cap, 4);
-        assert_eq!(v.len, 0);
+    fn buf_grow() {
+        let mut buf = Buf::<u32>::default();
+        buf.grow();
+        assert_eq!(buf.cap, 1);
+        buf.grow();
+        assert_eq!(buf.cap, 2);
+        buf.grow();
+        assert_eq!(buf.cap, 4);
     }
 
     #[test]
-    fn new() {
-        let v = Vec::<u64>::new();
-        assert_eq!(v.cap, 0);
-        assert_eq!(v.len, 0);
+    fn buf_default() {
+        let buf = Buf::<u64>::default();
+        assert_eq!(buf.cap, 0);
     }
 }
