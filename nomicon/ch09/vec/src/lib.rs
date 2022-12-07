@@ -15,10 +15,9 @@ pub struct Vec<T> {
 }
 
 pub struct IntoIter<T> {
-    // just a placeholder for the drop.
+    // just a placeholder for the ownership/drop.
+    iter: BufIter<T>,
     _buf: Buf<T>,
-    start: *const T,
-    end: *const T,
 }
 
 impl<T> Drop for IntoIter<T> {
@@ -32,43 +31,26 @@ impl<T> Drop for IntoIter<T> {
 impl<T> Debug for IntoIter<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("IntoIter")
-            .field("start", &self.start)
-            .field("end", &self.end)
-            .field("buf", &self._buf)
+            .field("iter", &self.iter)
             .finish()
     }
 }
 
 impl<T> Iterator for IntoIter<T> {
     type Item = T;
+
     fn next(&mut self) -> Option<Self::Item> {
-        if self.start == self.end {
-            None
-        } else {
-            unsafe {
-                let result = ptr::read(self.start);
-                self.start = self.start.add(1);
-                Some(result)
-            }
-        }
+        self.iter.next()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.end as usize - self.start as usize) / mem::size_of::<T>();
-        (len, Some(len))
+        self.iter.size_hint()
     }
 }
 
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.start == self.end {
-            None
-        } else {
-            unsafe {
-                self.end = self.end.offset(-1);
-                Some(ptr::read(self.end))
-            }
-        }
+        self.iter.next_back()
     }
 }
 
@@ -77,16 +59,10 @@ impl<T> IntoIterator for Vec<T> {
     type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
         unsafe {
-            let buf = ptr::read(&self.buf);
-            let len = self.len;
+            let iter = BufIter::new(&self);
+            let _buf = ptr::read(&self.buf);
             mem::forget(self);
-            let start = buf.ptr.as_ptr();
-            let end = if buf.cap == 0 { start } else { start.add(len) };
-            Self::IntoIter {
-                _buf: buf,
-                start,
-                end,
-            }
+            Self::IntoIter { _buf, iter }
         }
     }
 }
@@ -202,6 +178,67 @@ impl<T> Vec<T> {
 struct Buf<T> {
     ptr: NonNull<T>,
     cap: usize,
+}
+
+struct BufIter<T> {
+    start: *const T,
+    end: *const T,
+}
+
+impl<T> Debug for BufIter<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BufIter")
+            .field("start", &self.start)
+            .field("end", &self.end)
+            .finish()
+    }
+}
+
+impl<T> Iterator for BufIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                let result = ptr::read(self.start);
+                self.start = self.start.add(1);
+                Some(result)
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = (self.end as usize - self.start as usize) / mem::size_of::<T>();
+        (len, Some(len))
+    }
+}
+
+impl<T> DoubleEndedIterator for BufIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                self.end = self.end.offset(-1);
+                Some(ptr::read(self.end))
+            }
+        }
+    }
+}
+
+impl<T> BufIter<T> {
+    unsafe fn new(slice: &[T]) -> Self {
+        Self {
+            start: slice.as_ptr(),
+            end: if slice.is_empty() {
+                slice.as_ptr()
+            } else {
+                slice.as_ptr().add(slice.len())
+            },
+        }
+    }
 }
 
 unsafe impl<T> Send for Buf<T> {}
