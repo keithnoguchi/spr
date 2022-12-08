@@ -2,7 +2,7 @@
 use std::cmp::Ordering;
 use std::ops::{Add, AddAssign, Neg};
 
-#[derive(Debug)]
+#[derive(Eq, Debug)]
 pub struct Complex<T> {
     re: T,
     im: T,
@@ -112,6 +112,15 @@ where
             Some(Ordering::Equal) => self.im.partial_cmp(&other.im),
             Some(ord) => Some(ord),
             None => None,
+        }
+    }
+}
+
+impl<T: Ord> Ord for Complex<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.re.cmp(&other.re) {
+            Ordering::Equal => self.im.cmp(&self.im),
+            ord => ord,
         }
     }
 }
@@ -252,5 +261,14 @@ mod tests {
         let a = Complex { re: 1.9, im: 5.2 };
         let b = Complex { re: 1.9, im: 5.1 };
         assert_eq!(a.partial_cmp(&b), Some(Ordering::Greater));
+    }
+
+    #[test]
+    fn cmp_equal() {
+        use std::cmp::Ordering;
+
+        let a = Complex { re: 1, im: 5 };
+        let b = Complex { re: 1, im: 5 };
+        assert_eq!(a.cmp(&b), Ordering::Equal);
     }
 }
