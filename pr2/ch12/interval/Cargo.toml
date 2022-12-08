@@ -1,0 +1,7 @@
+[package]
+name = "interval"
+version = "0.1.0"
+edition = "2021"
+authors = ["Keith Noguchi <hack@noguchi.us>"]
+
+[dependencies]
