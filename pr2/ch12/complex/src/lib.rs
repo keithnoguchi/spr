@@ -1,5 +1,5 @@
 //! Operator Overloading Exercise with Add trait
-use std::ops::{Add, Neg};
+use std::ops::{Add, AddAssign, Neg};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Complex<T> {
@@ -79,6 +79,17 @@ where
             re: -self.re,
             im: -self.im,
         }
+    }
+}
+
+// a += b
+impl<T> AddAssign for Complex<T>
+where
+    T: AddAssign,
+{
+    fn add_assign(&mut self, rhs: Self) {
+        self.re += rhs.re;
+        self.im += rhs.im;
     }
 }
 
@@ -164,5 +175,25 @@ mod tests {
         let a = &Complex { re: 1.1, im: -1.2 };
 
         assert_eq!(a.neg(), Complex { re: -1.1, im: 1.2 });
+    }
+
+    #[test]
+    fn plus_equal() {
+        let mut a = Complex { re: 1.9, im: 5.2 };
+        let b = Complex { re: 2.1, im: 9.8 };
+
+        a += b;
+        assert_eq!(a, Complex { re: 4.0, im: 15.0 });
+    }
+
+    #[test]
+    fn add_assign() {
+        use std::ops::AddAssign;
+
+        let mut a = Complex { re: 1.9, im: 5.2 };
+        let b = Complex { re: 2.1, im: 9.8 };
+
+        a.add_assign(b);
+        assert_eq!(a, Complex { re: 4.0, im: 15.0 });
     }
 }
