@@ -8,6 +8,7 @@ members = [
   "nomicon/ch11/ffi",
   "pr2/ch11/fib",
   "pr2/ch11/dot",
+  "pr2/ch12/complex",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
 ]
