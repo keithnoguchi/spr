@@ -1,7 +1,7 @@
 //! Operator Overloading Exercise with Add trait
 use std::ops::{Add, AddAssign, Neg};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct Complex<T> {
     re: T,
     im: T,
@@ -90,6 +90,15 @@ where
     fn add_assign(&mut self, rhs: Self) {
         self.re += rhs.re;
         self.im += rhs.im;
+    }
+}
+
+impl<T> PartialEq for Complex<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, rhs: &Self) -> bool {
+        self.re == rhs.re && self.im == rhs.im
     }
 }
 
@@ -195,5 +204,23 @@ mod tests {
 
         a.add_assign(b);
         assert_eq!(a, Complex { re: 4.0, im: 15.0 });
+    }
+
+    #[test]
+    fn equal() {
+        let a = Complex { re: 1.9, im: 5.2 };
+        let b = Complex { re: 1.9, im: 5.2 };
+
+        assert!(a == b);
+    }
+
+    #[test]
+    fn eq() {
+        use std::cmp::PartialEq;
+
+        let a = Complex { re: 1.9, im: 5.2 };
+        let b = Complex { re: 1.9, im: 5.2 };
+
+        assert!(a.eq(&b));
     }
 }
