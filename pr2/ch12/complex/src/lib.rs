@@ -1,5 +1,5 @@
 //! Operator Overloading Exercise with Add trait
-use std::ops::Add;
+use std::ops::{Add, Neg};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Complex<T> {
@@ -48,6 +48,36 @@ where
         Complex {
             re: self.re + rhs.re,
             im: self.im + rhs.im,
+        }
+    }
+}
+
+// -a = c
+impl<T> Neg for Complex<T>
+where
+    T: Neg<Output = T>,
+{
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        Self {
+            re: -self.re,
+            im: -self.im,
+        }
+    }
+}
+
+// -&a = c
+impl<T> Neg for &Complex<T>
+where
+    T: Copy + Neg<Output = T>,
+{
+    type Output = Complex<T>;
+
+    fn neg(self) -> Self::Output {
+        Self::Output {
+            re: -self.re,
+            im: -self.im,
         }
     }
 }
@@ -102,5 +132,37 @@ mod tests {
         let a = Complex { re: 1.9, im: 5.2 };
         let b = Complex { re: 2.1, im: 9.8 };
         assert_eq!(a.add(&b), Complex { re: 4.0, im: 15.0 });
+    }
+
+    #[test]
+    fn minus() {
+        let a = Complex { re: 1.1, im: -1.2 };
+
+        assert_eq!(-a, Complex { re: -1.1, im: 1.2 });
+    }
+
+    #[test]
+    fn neg() {
+        use std::ops::Neg;
+
+        let a = Complex { re: 1.1, im: -1.2 };
+
+        assert_eq!(a.neg(), Complex { re: -1.1, im: 1.2 });
+    }
+
+    #[test]
+    fn minus_ref() {
+        let a = &Complex { re: 1.1, im: -1.2 };
+
+        assert_eq!(-a, Complex { re: -1.1, im: 1.2 });
+    }
+
+    #[test]
+    fn neg_ref() {
+        use std::ops::Neg;
+
+        let a = &Complex { re: 1.1, im: -1.2 };
+
+        assert_eq!(a.neg(), Complex { re: -1.1, im: 1.2 });
     }
 }
