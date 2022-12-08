@@ -1,4 +1,5 @@
 //! Operator Overloading Exercise with Add trait
+use std::cmp::Ordering;
 use std::ops::{Add, AddAssign, Neg};
 
 #[derive(Debug)]
@@ -99,6 +100,19 @@ where
 {
     fn eq(&self, rhs: &Self) -> bool {
         self.re == rhs.re && self.im == rhs.im
+    }
+}
+
+impl<T> PartialOrd for Complex<T>
+where
+    T: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.re.partial_cmp(&other.re) {
+            Some(Ordering::Equal) => self.im.partial_cmp(&other.im),
+            Some(ord) => Some(ord),
+            None => None,
+        }
     }
 }
 
@@ -222,5 +236,21 @@ mod tests {
         let b = Complex { re: 1.9, im: 5.2 };
 
         assert!(a.eq(&b));
+    }
+
+    #[test]
+    fn greater_than() {
+        let a = Complex { re: 1.9, im: 5.2 };
+        let b = Complex { re: 1.9, im: 5.1 };
+        assert!(a > b);
+    }
+
+    #[test]
+    fn partial_cmp() {
+        use std::cmp::Ordering;
+
+        let a = Complex { re: 1.9, im: 5.2 };
+        let b = Complex { re: 1.9, im: 5.1 };
+        assert_eq!(a.partial_cmp(&b), Some(Ordering::Greater));
     }
 }
