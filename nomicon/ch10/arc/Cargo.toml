@@ -1,0 +1,15 @@
+[package]
+name = "arc"
+version = "0.1.0"
+edition = "2021"
+authors = ["Keith Noguchi <hack@noguchi.us>"]
+
+[dependencies.tracing]
+version = "0.1"
+default-features = false
+features = ["attributes"]
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+default-features = false
+features = ["fmt", "ansi"]
