@@ -13,6 +13,7 @@ demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
 
 - [Vec: std::vec::Vec from Scratch](nomicon/ch09/vec/src/lib.rs)
 - [Arc: std::sync::Arc from Scratch](nomicon/ch10/arc/src/lib.rs)
+- [ffi: Foreign Function Interface](nomicon/ch11/ffi/src/main.rs)
 - [RefWithFlag: Reference with Packed Bool Flag](pr2/ch22/refwithflag/src/lib.rs)
 - [GapBuffer: Buffer with Gap Management](pr2/ch22/gapbuffer/src/lib.rs)
 

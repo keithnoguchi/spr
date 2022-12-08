@@ -1,0 +1,8 @@
+[package]
+name = "ffi"
+version = "0.1.0"
+edition = "2021"
+authors = ["Keith Noguchi <hack@noguchi.us>"]
+
+[dependencies.libc]
+version = "0.2"
