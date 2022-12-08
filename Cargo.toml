@@ -10,6 +10,7 @@ members = [
   "pr2/ch11/dot",
   "pr2/ch12/complex",
   "pr2/ch12/interval",
+  "pr2/ch12/image",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
 ]
