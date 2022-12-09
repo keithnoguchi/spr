@@ -1,16 +1,17 @@
 [workspace]
 
 members = [
-  "nomicon/ch03/list",
-  "nomicon/ch03/tree",
-  "nomicon/ch09/vec",
-  "nomicon/ch10/arc",
-  "nomicon/ch11/ffi",
   "pr2/ch11/fib",
   "pr2/ch11/dot",
   "pr2/ch12/complex",
   "pr2/ch12/interval",
   "pr2/ch12/image",
+  "pr2/ch13/drop",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
+  "nomicon/ch03/list",
+  "nomicon/ch03/tree",
+  "nomicon/ch09/vec",
+  "nomicon/ch10/arc",
+  "nomicon/ch11/ffi",
 ]
