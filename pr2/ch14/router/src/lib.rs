@@ -30,28 +30,62 @@ impl Response {
     }
 }
 
-// Callback as Trait Object.
-type BoxedCallback = Box<dyn Fn(&Request) -> Response>;
-
 #[derive(Default)]
-pub struct Router {
-    routes: HashMap<String, BoxedCallback>,
+pub struct FnPointerRouter {
+    routes: HashMap<String, fn(&Request) -> Response>,
 }
 
-impl Debug for Router {
+impl Debug for FnPointerRouter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Router")
+        f.debug_struct("FnPointerRouter")
             .field("routes.len()", &self.routes.len())
             .finish()
     }
 }
 
-impl Router {
+impl FnPointerRouter {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn add<P, C>(&mut self, path: P, callback: C) -> &mut Self
+    pub fn add<P>(mut self, path: P, callback: fn(&Request) -> Response) -> Self
+    where
+        P: ToString,
+    {
+        self.routes.insert(path.to_string(), callback);
+        self
+    }
+
+    pub fn route(&self, req: &Request) -> Response {
+        match self.routes.get(&req.url) {
+            None => Response::error(),
+            Some(callback) => callback(req),
+        }
+    }
+}
+
+// Callback as Trait Object.
+type BoxedCallback = Box<dyn Fn(&Request) -> Response>;
+
+#[derive(Default)]
+pub struct ClosureRouter {
+    routes: HashMap<String, BoxedCallback>,
+}
+
+impl Debug for ClosureRouter {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ClosureRouter")
+            .field("routes.len()", &self.routes.len())
+            .finish()
+    }
+}
+
+impl ClosureRouter {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add<P, C>(mut self, path: P, callback: C) -> Self
     where
         P: ToString,
         C: Fn(&Request) -> Response + 'static,
