@@ -50,6 +50,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "dump"
+version = "0.1.0"
+
+[[package]]
 name = "ffi"
 version = "0.1.0"
 dependencies = [

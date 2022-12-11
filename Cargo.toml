@@ -11,6 +11,7 @@ members = [
   "pr2/ch13/deref",
   "pr2/ch13/default",
   "pr2/ch14/router",
+  "pr2/ch15/dump",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
   "nomicon/ch03/list",
