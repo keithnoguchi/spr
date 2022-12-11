@@ -69,6 +69,10 @@ name = "fib2"
 version = "0.1.0"
 
 [[package]]
+name = "fizzbuzz"
+version = "0.1.0"
+
+[[package]]
 name = "gapbuffer"
 version = "0.1.0"
 dependencies = [
