@@ -16,6 +16,7 @@ members = [
   "pr2/ch15/fizzbuzz",
   "pr2/ch15/fold",
   "pr2/ch15/range",
+  "pr2/ch15/tree2",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
   "nomicon/ch03/list",
