@@ -6,7 +6,7 @@ use std::ops::Add;
 
 #[derive(Debug)]
 pub struct Range<T>
-where 
+where
     T: Copy + Debug + Eq + One + Add<Output = T>,
 {
     pub start: T,
