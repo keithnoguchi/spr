@@ -2,6 +2,7 @@
 
 members = [
   "pr2/ch05/artists",
+  "pr2/ch05/statics",
   "pr2/ch11/fib",
   "pr2/ch11/dot",
   "pr2/ch12/complex",
