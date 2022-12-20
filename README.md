@@ -10,8 +10,9 @@ demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
   - [Recursive Version](/pr2/ch11/fib/src/lib.rs)
 - [router: Simple Router](pr2/ch14/router/src/lib.rs)
 - [dump: IntoIterator Example](pr2/ch15/dump/src/lib.rs)
-- [copy: Reader and Writer Example](pr2/ch18/copy/src/lib.rs)
 - [fizzbuzz: Iterator Adaptor Example](pr2/ch15/fizzbuzz/src/lib.rs)
+- [copy: Reader and Writer Example](pr2/ch18/copy/src/lib.rs)
+- [dcopy: Directory copy](pr2/ch18/dcopy/src/lib.rs)
 - [List: Singly Linked List](nomicon/ch03/list/src/lib.rs)
 - [Tree: Unbalanced Binary Tree](nomicon/ch03/tree/src/lib.rs)
 

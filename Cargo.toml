@@ -22,6 +22,7 @@ members = [
   "pr2/ch15/tree2",
   "pr2/ch18/copy",
   "pr2/ch18/grep",
+  "pr2/ch18/dcopy",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
   "nomicon/ch03/list",
