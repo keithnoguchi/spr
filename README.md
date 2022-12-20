@@ -13,6 +13,7 @@ demonstrated in [Rustonomicon] and [Programming Rust], 2nd edition.
 - [fizzbuzz: Iterator Adaptor Example](pr2/ch15/fizzbuzz/src/lib.rs)
 - [copy: Reader and Writer Example](pr2/ch18/copy/src/lib.rs)
 - [dcopy: Directory copy](pr2/ch18/dcopy/src/lib.rs)
+- [echo: Echo Server Example](pr2/ch18/echo/src/lib.rs)
 - [List: Singly Linked List](nomicon/ch03/list/src/lib.rs)
 - [Tree: Unbalanced Binary Tree](nomicon/ch03/tree/src/lib.rs)
 
