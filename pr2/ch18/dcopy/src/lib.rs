@@ -1,6 +1,6 @@
 use std::fs;
-use std::path::Path;
 use std::io::{self, Result};
+use std::path::Path;
 
 pub fn copy_dir_to<P, Q>(src: P, dst: Q) -> Result<()>
 where
@@ -17,11 +17,7 @@ where
     for entry in src.read_dir()? {
         let entry = entry?;
         let file_type = entry.file_type()?;
-        copy_to(
-            &entry.path(),
-            &file_type,
-            &dst.join(entry.file_name()),
-        )?;
+        copy_to(&entry.path(), &file_type, &dst.join(entry.file_name()))?;
     }
 
     Ok(())
@@ -40,12 +36,9 @@ where
         copy_dir_to(src, dst)?;
     } else {
         return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!(
-                    "don't know how to copy: {}",
-                    src.display(),
-                ),
-            ));
+            io::ErrorKind::Other,
+            format!("don't know how to copy: {}", src.display(),),
+        ));
     }
     Ok(())
 }
