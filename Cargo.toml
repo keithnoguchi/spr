@@ -27,6 +27,7 @@ members = [
   "pr2/ch20/async-echo",
   "pr2/ch20/async-get",
   "pr2/ch20/async-chat",
+  "pr2/ch20/spawn-blocking",
   "pr2/ch22/refwithflag",
   "pr2/ch22/gapbuffer",
   "nomicon/ch03/list",

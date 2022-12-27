@@ -1532,6 +1532,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "spawn-blocking"
+version = "0.1.0"
+dependencies = [
+ "futures-lite",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "spinning_top"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
